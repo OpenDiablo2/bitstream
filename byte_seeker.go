@@ -5,6 +5,7 @@ import (
 	"io"
 )
 
+// byteSeeker is a byte array that implements io.ReadSeeker
 type byteSeeker struct {
 	bytes  []byte
 	offset int
