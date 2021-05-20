@@ -23,12 +23,18 @@ func FromBytes(bytes ...byte) *BitStream {
 	return New(nil).FromBytes(bytes...)
 }
 
+// Copy creates a deep copy of the source BitStream
+func Copy(src *BitStream) *BitStream {
+	return src.Copy()
+}
+
 // BitStream is used for reading structured data that is not byte aligned.
 // It can read one or many bits and yield a BitInterpreter.
 // The BitInterpreter can then be used to interpret the bits as another type.
 type BitStream struct {
 	io.ReadSeeker
 	bitPosition  int // the bit index within the current byte, 0 to 7
+	bitsRead int // the number of bits read since the last seek
 	Options      options
 }
 
@@ -54,6 +60,30 @@ func (bs *BitStream) FromBytes(bytes ...byte) *BitStream {
 	return bs
 }
 
+// Copy creates a copy of this bitstream, including the data
+func (bs *BitStream) Copy() *BitStream {
+	currentPosition, _ := bs.Seek(0, io.SeekCurrent)
+	currentBitPosition := bs.bitPosition
+	bitsRead := bs.bitsRead
+	length, _ := bs.Seek(0, io.SeekEnd)
+
+	_, _ = bs.Seek(0, io.SeekStart)
+	buf := make([]byte, length)
+
+	_, _ = bs.Read(buf)
+
+	dst := FromBytes(buf...)
+
+	bs.SetPosition(int(currentPosition)).SetBitPosition(currentBitPosition)
+	bs.bitsRead = bitsRead
+
+	return dst
+}
+
+func (bs *BitStream) BitsRead() int {
+	return bs.BitsRead()
+}
+
 // ReadBit reads a single bit from the stream source. It will always yield a boolean,
 // even if the stream is empty or at the end of the file. However, if BitStream.Options.ReadBeyondEOF
 // is false, ReadBit will return an io.EOF error during this read.
@@ -67,10 +97,13 @@ func (bs *BitStream) ReadBit() (bool, error) {
 		return false, io.EOF
 	}
 
+	bs.bitsRead++
+
 	position := bs.bitPosition // we store a copy, it gets altered during the read
 	if numRead, err := bs.ReadSeeker.Read(tmpBit); numRead < 1 || err != nil {
 		if bs.Options.ReadBeyondEOF {
 			err = nil
+			bs.bitsRead--
 		}
 
 		return false, err
