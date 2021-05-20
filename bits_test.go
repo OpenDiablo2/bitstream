@@ -96,7 +96,7 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
-//
+
 //func TestBits_AsInt64(t *testing.T) {
 //	tests := []struct {
 //		name string
@@ -113,7 +113,7 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
-//
+
 //func TestBits_AsInt8(t *testing.T) {
 //	tests := []struct {
 //		name string
@@ -130,7 +130,7 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
-//
+
 //func TestBits_AsUInt(t *testing.T) {
 //	tests := []struct {
 //		name string
@@ -147,7 +147,7 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
-//
+
 //func TestBits_AsUInt16(t *testing.T) {
 //	tests := []struct {
 //		name string
@@ -164,7 +164,7 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
-//
+
 //func TestBits_AsUInt32(t *testing.T) {
 //	tests := []struct {
 //		name string
@@ -181,7 +181,7 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
-//
+
 //func TestBits_AsUInt64(t *testing.T) {
 //	tests := []struct {
 //		name string
@@ -198,7 +198,7 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
-//
+
 //func TestBits_AsUInt8(t *testing.T) {
 //	tests := []struct {
 //		name string

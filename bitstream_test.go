@@ -115,37 +115,32 @@ func TestBitStream_OffsetPosition(t *testing.T) {
 	for idx := range tests {
 		expected := tests[idx].expect
 
-		bs.OffsetPosition(tests[idx].offset)
+		got := bs.OffsetPosition(tests[idx].offset)
 
-		if bs.bytePosition != expected {
-			t.Errorf("expected bit position to be %v, but got %v", expected, bs.bytePosition)
+		if got != expected {
+			t.Errorf("expected bit position to be %v, but got %v", expected, got)
 		}
 	}
 }
 
 func TestBitStream_Position(t *testing.T) {
-	bs := New(nil)
+	bytes := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	bs := FromBytes(bytes...)
 
-	if bs.Position() != 0 {
-		t.Error("expected byte position to be 0")
+	tests := []struct{
+		set int
+		expect int
+	}{
+		{-1, 0},
+		{0, 0},
+		{1, 1},
+		{100, len(bytes)},
 	}
 
-	bs.SetPosition(-1)
-
-	if bs.Position() != 0 {
-		t.Error("expected byte position to be 0")
-	}
-
-	bs.bytePosition = 8
-
-	if bs.Position() != 8 {
-		t.Error("expected byte position to be 8")
-	}
-
-	bs.bytePosition = -3
-
-	if bs.Position() != 0 {
-		t.Error("expected byte position to be 0")
+	for _, test := range tests {
+		if bs.SetPosition(test.set).Position() != test.expect {
+			t.Errorf("set position to %v, expected %v but got %v", test.set, test.expect, bs.Position())
+		}
 	}
 }
 
@@ -214,11 +209,11 @@ func TestBitStream_SetBitPosition(t *testing.T) {
 		bitPosition int
 		expected bool
 	}{
-		{7, true},
-		{1, true},
-		{-1, true},
-		{-2, false},
-		{9, true},
+		{7, true}, // starts at 7, reads bit and ends at 0 in next byte
+		{1, true}, // sets to 1, reads bit and ends at 2
+		{-1, true}, // goes back one byte to position 7 of first byte, ends in second byte
+		{-2, false}, // goes back to first byte, ends in first byte
+		{9, true}, // goes to second bit of second byte
 	}
 
 	for _, test := range tests {
@@ -235,6 +230,25 @@ func TestBitStream_SetBitPosition(t *testing.T) {
 }
 
 func TestBitStream_SetPosition(t *testing.T) {
+	bs := FromBytes(0, 0, 0, 0, 0, 0)
+
+	tests := []struct{
+		position int
+		expected int
+	}{
+		{-1, 0},
+		{0, 0},
+		{2, 2},
+		{7, 6},
+	}
+
+	for _, test := range tests {
+		v := bs.SetPosition(test.position).Position()
+
+		if v != test.expected {
+			t.Errorf("expected bit at position %v to be %v, got %v", test.position, test.expected, v)
+		}
+	}
 }
 
 
@@ -334,15 +348,3 @@ func readbits(b *testing.B, bs *BitStream, numBits int) {
 		_ = bs.ReadBits(numBitsToRead)
 	}
 }
-
-//func TestBits_AsInt(t *testing.T) {
-//
-//}
-//
-//func TestBits_AsInt16(t *testing.T) {
-//
-//}
-//
-//func TestBits_AsUInt16(t *testing.T) {
-//
-//}

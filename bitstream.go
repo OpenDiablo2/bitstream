@@ -6,28 +6,16 @@ import (
 
 const (
 	bitsPerByte = 8
-	byteMask    = 0xFF
 	bitMask     = 0x01
-)
-
-type endianness int
-
-const (
-	LittleEndian endianness = iota
-	BigEndian
 )
 
 // New creates a new BitStream using the given io.ReadSeeker
 func New(rs io.ReadSeeker) *BitStream {
-	result := &BitStream{
-		readSeeker:   rs,
-		bytePosition: 0,
-		bitPosition:  0,
-	}
+	bs := &BitStream{ReadSeeker: rs}
 
-	result.setDefaultOptions()
+	bs.setDefaultOptions()
 
-	return result
+	return bs
 }
 
 // FromBytes creates a new BitStream with the given bytes
@@ -37,16 +25,22 @@ func FromBytes(bytes ...byte) *BitStream {
 
 // BitStream is used for reading structured data that is not byte aligned.
 // It can read one or many bits and yield a BitInterpreter.
-// The BitInterpreter can then be used to convert the bits into another number type.
+// The BitInterpreter can then be used to interpret the bits as another type.
 type BitStream struct {
-	readSeeker   io.ReadSeeker
-	endianness       // determines which end the bits are read from the byte (from biggest end or smallest end)
-	bytePosition int // the byte index in the stream, 0 to length of stream bytes
+	io.ReadSeeker
 	bitPosition  int // the bit index within the current byte, 0 to 7
-	Options options
+	Options      options
 }
 
-type options struct{
+type endianness int
+
+const (
+	LittleEndian endianness = iota
+	BigEndian
+)
+
+type options struct {
+	endianness         // determines which end the bits are read from the byte (from biggest end or smallest end)
 	ReadBeyondEOF bool // allows returning 0's when reading bits past EOF
 }
 
@@ -56,7 +50,7 @@ func (bs *BitStream) setDefaultOptions() {
 
 // FromBytes yields a new BitStream, using the given bytes as the stream source
 func (bs *BitStream) FromBytes(bytes ...byte) *BitStream {
-	bs.readSeeker = &byteSeeker{bytes: bytes}
+	bs.ReadSeeker = &byteSeeker{bytes: bytes}
 	return bs
 }
 
@@ -66,23 +60,15 @@ func (bs *BitStream) FromBytes(bytes ...byte) *BitStream {
 //
 // It is also important to note that this read operation mutates
 // the BitStream BytePosition and BitPosition.
+var tmpBit = make([]byte, 1)
+
 func (bs *BitStream) ReadBit() (bool, error) {
-	if bs.readSeeker == nil {
+	if bs.ReadSeeker == nil {
 		return false, io.EOF
 	}
 
-	if _, err := bs.readSeeker.Seek(int64(bs.bytePosition), io.SeekStart); err != nil {
-		if !bs.Options.ReadBeyondEOF {
-			err = nil
-		}
-
-		return false, err
-	}
-
-	tmp := []byte{0}
-
 	position := bs.bitPosition // we store a copy, it gets altered during the read
-	if numRead, err := bs.readSeeker.Read(tmp); numRead < 1 || err != nil {
+	if numRead, err := bs.ReadSeeker.Read(tmpBit); numRead < 1 || err != nil {
 		if bs.Options.ReadBeyondEOF {
 			err = nil
 		}
@@ -94,18 +80,18 @@ func (bs *BitStream) ReadBit() (bool, error) {
 
 	shift := 0
 
-	switch bs.endianness {
+	switch bs.Options.endianness {
 	case LittleEndian:
 		shift = position
 	case BigEndian:
 		shift = bitsPerByte - position
 	}
 
-	return ((tmp[0] >> shift) & bitMask) > 0, nil
+	return ((tmpBit[0] >> shift) & bitMask) > 0, nil
 }
 
 // ReadBits will read n bits into a BitInterpreter. If the BitStream.Options.ReadBeyondEOF
-// option is false, the resultant BitInterpretter will be truncated to only contain bits
+// option is false, the resultant BitInterpreter will be truncated to only contain bits
 // that were successfully read before encountering the end of file.
 func (bs *BitStream) ReadBits(n int) Bits {
 	bits := make(Bits, n)
@@ -114,7 +100,10 @@ func (bs *BitStream) ReadBits(n int) Bits {
 		b, err := bs.ReadBit()
 
 		if err != nil {
-			bits = bits[:idx]
+			if !bs.Options.ReadBeyondEOF {
+				bits = bits[:idx]
+			}
+
 			break
 		}
 
@@ -124,31 +113,34 @@ func (bs *BitStream) ReadBits(n int) Bits {
 	return bits
 }
 
-// Position returns the byte-position within the stream
-func (bs *BitStream) Position() int {
-	if bs.bytePosition < 0 {
-		bs.bytePosition = 0
+// Seek sets the byte position within the stream.
+func (bs *BitStream) Seek(offset int64, whence int) (int64, error) {
+	if bs.ReadSeeker == nil {
+		return 0, io.EOF
 	}
 
-	return bs.bytePosition
+	return bs.ReadSeeker.Seek(offset, whence)
+}
+
+// Position returns the byte-position within the stream
+func (bs *BitStream) Position() int {
+	p, _ := bs.Seek(0, io.SeekCurrent)
+	return int(p)
 }
 
 // SetPosition sets the byte position within the stream.
 // The final position will be a positive integer.
 func (bs *BitStream) SetPosition(i int) *BitStream {
-	bs.bytePosition = i
-
-	if bs.bytePosition < 0 {
-		bs.bytePosition = 0
-	}
+	_, _ = bs.Seek(int64(i), io.SeekStart)
 
 	return bs
 }
 
 // OffsetPosition will offset the current position by the given integer.
 // The final position will be a positive integer.
-func (bs *BitStream) OffsetPosition(i int) {
-	bs.SetPosition(bs.Position() + i)
+func (bs *BitStream) OffsetPosition(i int) int {
+	position, _ := bs.Seek(int64(i), io.SeekCurrent)
+	return int(position)
 }
 
 // BitPosition returns the current bit index that the reader will read from.
@@ -159,15 +151,20 @@ func (bs *BitStream) BitPosition() int {
 }
 
 // SetBitPosition sets the bit position.
-// NOTE: setting a bit position <0 or >7 will offset the byte position
+// It's IMPORTANT to understand that this is NOT relative to the current position! This is relative to
+// bit position 0 of the current byte!
+//
+// Example: setting to -1 is the same as calling OffsetPosition(-1) and then SetBitPosition(7)
 func (bs *BitStream) SetBitPosition(i int) *BitStream {
+	position, _ := bs.Seek(0, io.SeekCurrent)
+
 	// corner case, can't go back any further
-	if i < 0 && bs.bytePosition == 0 {
+	if i < 0 && position <= 0 {
 		i = 0
 	}
 
 	// going negative when not at first byte
-	for i < 0 && bs.bytePosition > 0 {
+	for i < 0 && position > 0 {
 		i += bitsPerByte
 		bs.OffsetPosition(-1)
 	}
@@ -190,12 +187,12 @@ func (bs *BitStream) OffsetBitPosition(i int) *BitStream {
 
 // SetLittleEndian makes the BitStream read bits from the current byte from least-significant to most-significant.
 func (bs *BitStream) SetLittleEndian() *BitStream {
-	bs.endianness = LittleEndian
+	bs.Options.endianness = LittleEndian
 	return bs
 }
 
 // SetBigEndian makes the BitStream read bits from the current byte from most-significant to least-significant.
 func (bs *BitStream) SetBigEndian() *BitStream {
-	bs.endianness = BigEndian
+	bs.Options.endianness = BigEndian
 	return bs
 }
