@@ -81,7 +81,7 @@ func (bs *BitStream) Copy() *BitStream {
 }
 
 func (bs *BitStream) BitsRead() int {
-	return bs.BitsRead()
+	return bs.bitsRead
 }
 
 // ReadBit reads a single bit from the stream source. It will always yield a boolean,
@@ -228,4 +228,20 @@ func (bs *BitStream) SetLittleEndian() *BitStream {
 func (bs *BitStream) SetBigEndian() *BitStream {
 	bs.Options.endianness = BigEndian
 	return bs
+}
+
+// ReadBytes is a helper method for reading a slice of bytes from the bitstream
+func (bs *BitStream) ReadByte() byte {
+	return bs.ReadBits(bitsPerByte).AsByte()
+}
+
+// ReadBytes is a helper method for reading a slice of bytes from the bitstream
+func (bs *BitStream) ReadBytes(count int) []byte {
+	bytes := make([]byte, count)
+
+	for idx := 0; idx < count; idx++ {
+		bytes[idx] = bs.ReadByte()
+	}
+
+	return bytes
 }
