@@ -9,7 +9,7 @@ import (
 func TestBitStream_NilData(t *testing.T) {
 	bs := New(nil)
 
-	bit, err := bs.ReadBit()
+	bit, err := bs.readBit()
 
 	if err != io.EOF {
 		t.Error("expecting end of file for nil read seeker")
@@ -36,19 +36,19 @@ func TestBitStream_BitPosition(t *testing.T) {
 		t.Error("expected bit position to be 0 after init")
 	}
 
-	_, _ = bs.ReadBit()
+	_ = bs.Read(1).Bits()
 
 	if bs.BitPosition() != 1 {
 		t.Error("expected bit position to be 1 after reading a bit")
 	}
 
-	_ = bs.ReadBits(16)
+	_ = bs.Read(16).Bits()
 
 	if bs.BitPosition() != 1 {
 		t.Error("expected bit position to still be 1")
 	}
 
-	_ = bs.ReadBits(17)
+	_ = bs.Read(17).Bits()
 
 	if bs.BitPosition() != 2 {
 		t.Errorf("expected bit position to be 2, got %v", bs.bitPosition)
@@ -165,7 +165,7 @@ func TestBitStream_ReadBit(t *testing.T) {
 	bs.Options.ReadBeyondEOF = true
 
 	for idx := range tests {
-		b, _ := bs.ReadBit()
+		b, _ := bs.readBit()
 
 		expected := tests[idx].expect
 
@@ -176,7 +176,7 @@ func TestBitStream_ReadBit(t *testing.T) {
 
 	bs.Options.ReadBeyondEOF = false
 
-	if _, err := bs.ReadBit(); err != io.EOF {
+	if _, err := bs.readBit(); err != io.EOF {
 		t.Error("expected EOF")
 	}
 }
@@ -193,11 +193,14 @@ func TestBitStream_ReadBits(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		b := bs.ReadBits(test.numBitsToRead)
+		b := bs.Read(test.numBitsToRead).Bits()
+		if b.Error != nil {
+			t.Error(b.Error)
+		}
 
-		if len(b) != test.numBitsToRead {
+		if len(b.Bits) != test.numBitsToRead {
 			const fmtErr = "expected bits length of %v, got length %v"
-			t.Errorf(fmtErr, test.numBitsToRead, len(b))
+			t.Errorf(fmtErr, test.numBitsToRead, len(b.Bits))
 		}
 	}
 }
@@ -217,7 +220,7 @@ func TestBitStream_SetBitPosition(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		v, err := bs.SetBitPosition(test.bitPosition).ReadBit()
+		v, err := bs.SetBitPosition(test.bitPosition).readBit()
 		if err != nil {
 			t.Error(err)
 			continue
@@ -278,12 +281,15 @@ func TestBitStream_ReadByte_AsByte(t *testing.T) {
 		// going past 7 offsets the current byte
 		bs.SetBitPosition(test.bitOffset)
 
-		val := bs.ReadBits(bitsPerByte).AsByte()
+		res := bs.Read(1).Bytes()
+		if res.Error != nil {
+			t.Error(res.Error)
+		}
 
-		if val != test.expectedByte {
+		if res.AsByte() != test.expectedByte {
 			const fmtErr = "expected bits as byte %v, but got %v"
 
-			t.Errorf(fmtErr, test.expectedByte, val)
+			t.Errorf(fmtErr, test.expectedByte, res.AsByte())
 		}
 	}
 }
@@ -296,7 +302,7 @@ func BenchmarkBitStream_ReadBits(b *testing.B) {
 
 	b.Run("readbit", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = bs.SetPosition(0).SetBitPosition(0).ReadBit()
+			_, _ = bs.SetPosition(0).SetBitPosition(0).readBit()
 		}
 	})
 
@@ -345,6 +351,6 @@ func readbits(b *testing.B, bs *BitStream, numBits int) {
 		bs.SetBitPosition(0)
 
 		numBitsToRead := rand.Intn(numBits)
-		_ = bs.ReadBits(numBitsToRead)
+		_ = bs.Read(numBitsToRead).Bits()
 	}
 }

@@ -1,5 +1,7 @@
 package bitstream
 
+import "math"
+
 const (
 	twosComplimentNegativeOne = 4294967295
 )
@@ -11,10 +13,31 @@ type BitInterpreter []bool
 type Bits = BitInterpreter
 
 // AsByte interprets the bits as a byte
+func (b Bits) AsBool() bool {
+	return b.AsInt() > 0
+}
+
+// AsByte interprets the bits as a byte
 func (b Bits) AsByte() byte {
 	return byte(b.AsUInt())
 }
 
+// AsBytes interprets the bits as a slice of bytes
+func (b Bits) AsBytes() []byte {
+	numBits := len(b)
+	numBytes := int(math.Ceil(float64(numBits) / float64(bitsPerByte)))
+	result := make([]byte, numBytes)
+
+	for idx := 0; idx < numBytes; idx++ {
+		startBit, stopBit := idx*bitsPerByte, (idx+1)*bitsPerByte
+		if stopBit > numBits {
+			stopBit = numBits
+		}
+		result[idx] = Bits(b[startBit:stopBit]).AsByte()
+	}
+
+	return result
+}
 // AsInt8 interprets the bits as a signed 8-bit integer
 func (b Bits) AsInt8() int8 {
 	return int8(makeSigned32(uint32(b.AsUInt8()), len(b)))

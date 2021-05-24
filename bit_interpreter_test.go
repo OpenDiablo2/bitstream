@@ -1,6 +1,9 @@
 package bitstream
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 const (
 	T = true
@@ -215,3 +218,21 @@ func TestBits_AsInt16(t *testing.T) {
 //		})
 //	}
 //}
+
+func TestBits_AsBytes(t *testing.T) {
+	tests := []struct {
+		name string
+		b    Bits
+		want []byte
+	}{
+		{"", Bits{F, T}, []byte{2}},
+		{"", Bits{F, F, F, F, F, F, F, F, T}, []byte{0, 1}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.AsBytes(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AsBytes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
