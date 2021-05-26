@@ -149,7 +149,7 @@ func TestBitStream_Position(t *testing.T) {
 }
 
 func TestBitStream_ReadBit(t *testing.T) {
-	bs := FromBytes(0b10000010)
+	bs := FromBytes(130)
 
 	tests := []struct {
 		expect bool
@@ -182,7 +182,7 @@ func TestBitStream_ReadBit(t *testing.T) {
 }
 
 func TestBitStream_ReadBits(t *testing.T) {
-	bs := FromBytes(0b10000010)
+	bs := FromBytes(130)
 
 	tests := []struct {
 		numBitsToRead int
@@ -208,7 +208,7 @@ func TestBitStream_ReadBits(t *testing.T) {
 }
 
 func TestBitStream_SetBitPosition(t *testing.T) {
-	bs := FromBytes(0b1000_0000, 0b0000_0010)
+	bs := FromBytes(128, 2)
 
 	tests := []struct {
 		bitPosition int
@@ -260,10 +260,7 @@ func TestBitStream_SetPosition(t *testing.T) {
 
 func TestBitStream_ReadByte_AsByte(t *testing.T) {
 	bs := FromBytes(
-		0b_1000_0000,
-		0b_0000_0001,
-		0b_0000_1111,
-		0b_1100_1100,
+		128, 1, 15, 204,
 	)
 
 	tests := []struct {
@@ -366,7 +363,7 @@ func readbits(b *testing.B, bs *BitStream, numBits int) {
 }
 
 func TestFromBytes(t *testing.T) {
-	s := FromBytes(0b_0000_0000, 0b_0010_0000)
+	s := FromBytes(0, 32)
 
 	s.OffsetBitPosition(12) // second byte, will read from 5th LSB next
 
@@ -375,5 +372,5 @@ func TestFromBytes(t *testing.T) {
 		t.Error("Reading bits returned End Of File")
 	}
 
-	assert.Equal(t, byte(0b10), val, "unexpected value returned")
+	assert.Equal(t, byte(2), val, "unexpected value returned")
 }

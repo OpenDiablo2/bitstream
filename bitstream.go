@@ -11,8 +11,10 @@ const (
 	bitsPerByte       = 8
 	bitsPerWord       = bitsPerByte
 	bitsPerDoubleWord = bitsPerWord << 1
-	bitsPerQuadWord   = bitsPerDoubleWord << 1
-	bitMask           = 0x01
+	//nolint:deadcode,unused,varcheck // may be used
+	bitsPerQuadWord = bitsPerDoubleWord << 1
+
+	bitMask = 0x01
 )
 
 // New creates a new BitStream using the given io.ReadSeeker
