@@ -24,34 +24,34 @@ func TestBitStream_BitPosition(t *testing.T) {
 	bs :=  FromBytes(
 			0x01, 0x02, 0x03, 0x04,
 			0x01, 0x02, 0x03, 0x04,
-			0x01, 0x02, 0x03, 0x04,
-			0x01, 0x02, 0x03, 0x04,
-			0x01, 0x02, 0x03, 0x04,
-			0x01, 0x02, 0x03, 0x04,
-			0x01, 0x02, 0x03, 0x04,
-			0x01, 0x02, 0x03, 0x04,
 		)
 
-	if bs.BitPosition() != 0 {
-		t.Error("expected bit position to be 0 after init")
+	tests := []struct{
+		bitsToRead int
+		expectedBytePosition int
+		expectedError error
+	}{
+		{3, 0, nil},
+		{3, 0, nil},
+		{2, 1, nil},
+		{8, 2, nil},
+		{8, 3, nil},
+		{64, 8, io.EOF},
 	}
 
-	_ = bs.Read(1).Bits()
+	for idx, test := range tests {
+		_ = idx
+		res := bs.Next(test.bitsToRead).Bits()
+		if res.Error != test.expectedError {
+			t.Error(res.Error)
+		}
 
-	if bs.BitPosition() != 1 {
-		t.Error("expected bit position to be 1 after reading a bit")
-	}
+		bytePosition := bs.Position()
 
-	_ = bs.Read(16).Bits()
-
-	if bs.BitPosition() != 1 {
-		t.Error("expected bit position to still be 1")
-	}
-
-	_ = bs.Read(17).Bits()
-
-	if bs.BitPosition() != 2 {
-		t.Errorf("expected bit position to be 2, got %v", bs.bitPosition)
+		if bytePosition != test.expectedBytePosition {
+			const fmtMsg = "read %v bits, expecting byte position %v, but got %v"
+			t.Errorf(fmtMsg, test.bitsToRead, test.expectedBytePosition, bytePosition)
+		}
 	}
 }
 
@@ -134,7 +134,7 @@ func TestBitStream_Position(t *testing.T) {
 		{-1, 0},
 		{0, 0},
 		{1, 1},
-		{100, len(bytes)},
+		{100, 100},
 	}
 
 	for _, test := range tests {
@@ -159,10 +159,8 @@ func TestBitStream_ReadBit(t *testing.T) {
 		{false, nil},
 		{false, nil},
 		{true, nil},
-		{false, io.EOF},
+		{false, nil},
 	}
-
-	bs.Options.ReadBeyondEOF = true
 
 	for idx := range tests {
 		b, _ := bs.readBit()
@@ -174,10 +172,8 @@ func TestBitStream_ReadBit(t *testing.T) {
 		}
 	}
 
-	bs.Options.ReadBeyondEOF = false
-
 	if _, err := bs.readBit(); err != io.EOF {
-		t.Error("expected EOF")
+		t.Errorf("expected EOF error, got %v", err)
 	}
 }
 
@@ -186,15 +182,16 @@ func TestBitStream_ReadBits(t *testing.T) {
 
 	tests := []struct{
 		numBitsToRead int
+		expectedError error
 	}{
-		{4},
-		{1},
-		{10},
+		{4, nil},
+		{1, nil},
+		{10, io.EOF},
 	}
 
 	for _, test := range tests {
-		b := bs.Read(test.numBitsToRead).Bits()
-		if b.Error != nil {
+		b := bs.Next(test.numBitsToRead).Bits()
+		if b.Error != test.expectedError {
 			t.Error(b.Error)
 		}
 
@@ -242,14 +239,16 @@ func TestBitStream_SetPosition(t *testing.T) {
 		{-1, 0},
 		{0, 0},
 		{2, 2},
-		{7, 6},
+		{7, 7},
 	}
 
 	for _, test := range tests {
 		v := bs.SetPosition(test.position).Position()
 
 		if v != test.expected {
-			t.Errorf("expected bit at position %v to be %v, got %v", test.position, test.expected, v)
+			const fmtErr = "expected to be at position %v after offsetting by %v, got %v"
+
+			t.Errorf(fmtErr, test.expected, test.position, v)
 		}
 	}
 }
@@ -281,15 +280,15 @@ func TestBitStream_ReadByte_AsByte(t *testing.T) {
 		// going past 7 offsets the current byte
 		bs.SetBitPosition(test.bitOffset)
 
-		res := bs.Read(1).Bytes()
-		if res.Error != nil {
-			t.Error(res.Error)
+		val, err := bs.Next(1).Bytes().AsByte()
+		if err != nil {
+			t.Error(err)
 		}
 
-		if res.AsByte() != test.expectedByte {
+		if val != test.expectedByte {
 			const fmtErr = "expected bits as byte %v, but got %v"
 
-			t.Errorf(fmtErr, test.expectedByte, res.AsByte())
+			t.Errorf(fmtErr, test.expectedByte, val)
 		}
 	}
 }
@@ -351,6 +350,21 @@ func readbits(b *testing.B, bs *BitStream, numBits int) {
 		bs.SetBitPosition(0)
 
 		numBitsToRead := rand.Intn(numBits)
-		_ = bs.Read(numBitsToRead).Bits()
+		_ = bs.Next(numBitsToRead).Bits()
+	}
+}
+
+func TestFromBytes(t *testing.T) {
+	s := FromBytes(0b_0000_0000, 0b_0010_0000)
+
+	s.OffsetBitPosition(12) // second byte, will read from 5th LSB next
+
+	val, err := s.Next(2).Bits().AsByte()
+	if err != nil {
+		// EOF
+	}
+
+	if val != 0b10 {
+		// handle it
 	}
 }

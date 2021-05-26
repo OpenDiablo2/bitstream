@@ -1,6 +1,9 @@
+// Package bitstream provides a stream reader implementation that can
+// read data that is not byte aligned.
 package bitstream
 
 import (
+	"bytes"
 	"io"
 )
 
@@ -15,8 +18,6 @@ const (
 // New creates a new BitStream using the given io.ReadSeeker
 func New(rs io.ReadSeeker) *BitStream {
 	bs := &BitStream{stream: rs}
-
-	bs.setDefaultOptions()
 
 	return bs
 }
@@ -51,16 +52,11 @@ const (
 
 type options struct {
 	endianness         // determines which end the bits are read from the byte (from biggest end or smallest end)
-	ReadBeyondEOF bool // allows returning 0's when reading bits past EOF
-}
-
-func (bs *BitStream) setDefaultOptions() {
-	bs.Options.ReadBeyondEOF = true
 }
 
 // FromBytes yields a new BitStream, using the given bytes as the stream source
-func (bs *BitStream) FromBytes(bytes ...byte) *BitStream {
-	bs.stream = &byteSeeker{bytes: bytes}
+func (bs *BitStream) FromBytes(b ...byte) *BitStream {
+	bs.stream = bytes.NewReader(b)
 	return bs
 }
 
@@ -103,27 +99,30 @@ func (bs *BitStream) readBit() (bool, error) {
 		return false, io.EOF
 	}
 
-	bs.bitsRead++
 
-	position := bs.bitPosition // we store a copy, it gets altered during the read
+	bp := bs.bitPosition // we store a copy, it gets altered during the read
 	if numRead, err := bs.stream.Read(tmpBit); numRead < 1 || err != nil {
-		if bs.Options.ReadBeyondEOF {
-			err = nil
-			bs.bitsRead--
-		}
-
 		return false, err
 	}
 
+	bs.bitsRead++
 	bs.OffsetBitPosition(+1)
+
+	// we only seek to the next byte in the stream when we
+	// read the last bit (index 7) of the current byte
+	if bp < bitsPerByte {
+		// otherwise, we seek backward by one byte so that
+		// the next read yields the same byte
+		_, _ = bs.Seek(-1, io.SeekCurrent)
+	}
 
 	shift := 0
 
 	switch bs.Options.endianness {
 	case LittleEndian:
-		shift = position
+		shift = bp
 	case BigEndian:
-		shift = bitsPerByte - position
+		shift = bitsPerByte - bp
 	}
 
 	return ((tmpBit[0] >> shift) & bitMask) > 0, nil
@@ -133,23 +132,20 @@ func (bs *BitStream) readBit() (bool, error) {
 // option is false, the resultant BitInterpreter will be truncated to only contain bits
 // that were successfully read before encountering the end of file.
 func (bs *BitStream) readBits(n int) (Bits, error) {
-	bits := make(Bits, n)
+	bits := make(Bits, n) // preallocate
 
+
+	// read each bit, one by one
 	for idx := 0; idx < n; idx++ {
 		b, err := bs.readBit()
 
+		// if there is an error (EOF), we truncate if ReadBeyondEOF is false
 		if err != nil {
-			if !bs.Options.ReadBeyondEOF {
-				bits = bits[:idx]
-			}
-
 			return bits, err
 		}
 
 		bits[idx] = b
 	}
-
-	bs.unitsToRead = 1
 
 	return bits, nil
 }
@@ -238,57 +234,32 @@ func (bs *BitStream) SetBigEndian() *BitStream {
 	return bs
 }
 
-// Read sets the integer count for the next "unit" of data read.
+// Next sets the integer count for the next "unit" of data read.
 // ex:
-//		instance.Read(2).Bytes().AsUInt64() will read 2 bytes and interpret as uint64
-//		instance.Read(4).Bits().AsInt() will read 4 bits
-func (bs *BitStream) Read(count int) *BitStream {
-	if count <= 0 {
-		count = 1
-	}
-
+//		instance.Next(2).Bytes().AsUInt64() will read 2 bytes and interpret as uint64
+//		instance.Next(4).Bits().AsInt() will read 4 bits
+func (bs *BitStream) Next(count int) *BitStream {
 	bs.unitsToRead = count
 
 	return bs
 }
 
-// Bits will read a number of bits from the stream into a BitInterpreter
+// Bits will read a number of bits from the stream into a Response
 //
-// NOTE: The number is specified by by calling bitstream.Read
+// NOTE: The number is specified by by calling bitstream.Next
 //
 // example:
 //
-// val, err := bitstream.Read(2).Bytes()
+// val, err := bitstream.Next(2).Bytes()
 func (bs *BitStream) Bits() Response {
 	bits, err := bs.readBits(bs.unitsToRead)
 
 	return Response{bits, err}
 }
 
-// Bytes will read (bs.unitsToRead * 8) bits into a BitInterpreter
+// Bytes will read (bs.unitsToRead * 8) bits into a Response
 func (bs *BitStream) Bytes() Response {
 	bits, err := bs.readBits(bs.unitsToRead * bitsPerByte)
-
-	return Response{bits, err}
-}
-
-// Words will read (bs.unitsToRead * 8) bits into a BitInterpreter
-func (bs *BitStream) Words() Response {
-	bits, err := bs.readBits(bs.unitsToRead * bitsPerWord)
-
-	return Response{bits, err}
-}
-
-// DoubleWords will read (bs.unitsToRead * 16) bits into a BitInterpreter
-func (bs *BitStream) DoubleWords() Response {
-	bits, err := bs.readBits(bs.unitsToRead * bitsPerDoubleWord)
-
-	return Response{bits, err}
-}
-
-// QuadWords will read (bs.unitsToRead * 32) bits into a BitInterpreter
-func (bs *BitStream) QuadWords() Response {
-	bits, err := bs.readBits(bs.unitsToRead * bitsPerQuadWord)
 
 	return Response{bits, err}
 }
