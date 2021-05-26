@@ -71,7 +71,7 @@ func (b Bits) AsUInt32() uint32 {
 
 // AsInt64 interprets the bits as a signed 64-bit integer
 func (b Bits) AsInt64() int64 {
-	return b.AsInt64()
+	return makeSigned64(b.AsUInt64(), len(b))
 }
 
 // AsUInt64 interprets the bits as an unsigned 64-bit integer
