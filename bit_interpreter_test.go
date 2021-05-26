@@ -1,3 +1,4 @@
+//nolint:gocritic // (appear for 'commentFormating) TODO
 package bitstream
 
 import (

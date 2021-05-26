@@ -23,8 +23,8 @@ func New(rs io.ReadSeeker) *BitStream {
 }
 
 // FromBytes creates a new BitStream with the given bytes
-func FromBytes(bytes ...byte) *BitStream {
-	return New(nil).FromBytes(bytes...)
+func FromBytes(data ...byte) *BitStream {
+	return New(nil).FromBytes(data...)
 }
 
 // Copy creates a deep copy of the source BitStream
@@ -36,7 +36,7 @@ func Copy(src *BitStream) *BitStream {
 // It can read one or many bits and yield a BitInterpreter.
 // The BitInterpreter can then be used to interpret the bits as another type.
 type BitStream struct {
-	stream io.ReadSeeker
+	stream      io.ReadSeeker
 	bitPosition int // the bit index within the current byte, 0 to 7
 	bitsRead    int // the number of bits read since the last seek
 	unitsToRead int
@@ -45,13 +45,14 @@ type BitStream struct {
 
 type endianness int
 
+// endianess types
 const (
 	LittleEndian endianness = iota
 	BigEndian
 )
 
 type options struct {
-	endianness         // determines which end the bits are read from the byte (from biggest end or smallest end)
+	endianness // determines which end the bits are read from the byte (from biggest end or smallest end)
 }
 
 // FromBytes yields a new BitStream, using the given bytes as the stream source
@@ -82,6 +83,7 @@ func (bs *BitStream) Copy() *BitStream {
 	return dst
 }
 
+// BitsRead returns a number of readed bits
 func (bs *BitStream) BitsRead() int {
 	return bs.bitsRead
 }
@@ -99,8 +101,8 @@ func (bs *BitStream) readBit() (bool, error) {
 		return false, io.EOF
 	}
 
-
 	bp := bs.bitPosition // we store a copy, it gets altered during the read
+
 	if numRead, err := bs.stream.Read(tmpBit); numRead < 1 || err != nil {
 		return false, err
 	}
@@ -134,11 +136,9 @@ func (bs *BitStream) readBit() (bool, error) {
 func (bs *BitStream) readBits(n int) (Bits, error) {
 	bits := make(Bits, n) // preallocate
 
-
 	// read each bit, one by one
 	for idx := 0; idx < n; idx++ {
 		b, err := bs.readBit()
-
 		// if there is an error (EOF), we truncate if ReadBeyondEOF is false
 		if err != nil {
 			return bits, err
@@ -203,6 +203,7 @@ func (bs *BitStream) SetBitPosition(i int) *BitStream {
 	// going negative when not at first byte
 	for i < 0 && position > 0 {
 		i += bitsPerByte
+
 		bs.OffsetPosition(-1)
 	}
 

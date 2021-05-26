@@ -1,9 +1,10 @@
 package bitstream
 
 import (
+	"crypto/rand"
 	"errors"
 	"io"
-	"math/rand"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,10 +43,9 @@ func TestBitStream_BitPosition(t *testing.T) {
 		{64, 8, io.EOF},
 	}
 
-	for idx, test := range tests {
-		_ = idx
+	for _, test := range tests {
 		res := bs.Next(test.bitsToRead).Bits()
-		if res.Error != test.expectedError {
+		if !errors.Is(res.Error, test.expectedError) {
 			t.Error(res.Error)
 		}
 
@@ -53,6 +53,7 @@ func TestBitStream_BitPosition(t *testing.T) {
 
 		if bytePosition != test.expectedBytePosition {
 			const fmtMsg = "read %v bits, expecting byte position %v, but got %v"
+
 			t.Errorf(fmtMsg, test.bitsToRead, test.expectedBytePosition, bytePosition)
 		}
 	}
@@ -200,6 +201,7 @@ func TestBitStream_ReadBits(t *testing.T) {
 
 		if len(b.Bits) != test.numBitsToRead {
 			const fmtErr = "expected bits length of %v, got length %v"
+
 			t.Errorf(fmtErr, test.numBitsToRead, len(b.Bits))
 		}
 	}
@@ -297,7 +299,10 @@ func TestBitStream_ReadByte_AsByte(t *testing.T) {
 
 func BenchmarkBitStream_ReadBits(b *testing.B) {
 	bytes := make([]byte, 1024)
-	rand.Read(bytes)
+
+	if _, err := rand.Read(bytes); err != nil {
+		b.Error(err)
+	}
 
 	bs := FromBytes(bytes...)
 
@@ -351,8 +356,12 @@ func readbits(b *testing.B, bs *BitStream, numBits int) {
 		bs.SetPosition(0)
 		bs.SetBitPosition(0)
 
-		numBitsToRead := rand.Intn(numBits)
-		_ = bs.Next(numBitsToRead).Bits()
+		numBitsToRead, err := rand.Int(rand.Reader, big.NewInt(int64(numBits)))
+		if err != nil {
+			b.Error(err)
+		}
+
+		_ = bs.Next(int(numBitsToRead.Int64())).Bits()
 	}
 }
 

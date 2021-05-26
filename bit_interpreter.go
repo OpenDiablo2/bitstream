@@ -12,7 +12,7 @@ type BitInterpreter []bool
 // Bits is an alias for BitInterpreter, for brevity.
 type Bits = BitInterpreter
 
-// AsByte interprets the bits as a byte
+// AsBool interprets the bits as a bool
 func (b Bits) AsBool() bool {
 	return b.AsInt() > 0
 }
@@ -33,7 +33,8 @@ func (b Bits) AsBytes() []byte {
 		if stopBit > numBits {
 			stopBit = numBits
 		}
-		result[idx] = Bits(b[startBit:stopBit]).AsByte()
+
+		result[idx] = b[startBit:stopBit].AsByte()
 	}
 
 	return result
@@ -90,7 +91,7 @@ func (b Bits) AsUInt() uint {
 
 	for idx := 0; idx < len(b); idx++ {
 		if b[idx] {
-			result = result | (1 << idx)
+			result |= (1 << idx)
 		}
 	}
 
