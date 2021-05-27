@@ -1,11 +1,12 @@
 package bitstream
 
+// Response represens a response of BitStream
 type Response struct {
 	Bits
 	Error error
 }
 
-// AsByte interprets the bits as a byte
+// AsBool interprets the bits as a bool
 func (res Response) AsBool() (bool, error) {
 	return res.Bits.AsInt() > 0, res.Error
 }
@@ -69,4 +70,3 @@ func (res Response) AsInt() (int, error) {
 func (res Response) AsUInt() (uint, error) {
 	return res.Bits.AsUInt(), res.Error
 }
-
