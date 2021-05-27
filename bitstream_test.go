@@ -1,9 +1,13 @@
 package bitstream
 
 import (
+	"crypto/rand"
+	"errors"
 	"io"
-	"math/rand"
+	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBitStream_NilData(t *testing.T) {
@@ -11,7 +15,7 @@ func TestBitStream_NilData(t *testing.T) {
 
 	bit, err := bs.readBit()
 
-	if err != io.EOF {
+	if !errors.Is(err, io.EOF) {
 		t.Error("expecting end of file for nil read seeker")
 	}
 
@@ -21,15 +25,15 @@ func TestBitStream_NilData(t *testing.T) {
 }
 
 func TestBitStream_BitPosition(t *testing.T) {
-	bs :=  FromBytes(
-			0x01, 0x02, 0x03, 0x04,
-			0x01, 0x02, 0x03, 0x04,
-		)
+	bs := FromBytes(
+		0x01, 0x02, 0x03, 0x04,
+		0x01, 0x02, 0x03, 0x04,
+	)
 
-	tests := []struct{
-		bitsToRead int
+	tests := []struct {
+		bitsToRead           int
 		expectedBytePosition int
-		expectedError error
+		expectedError        error
 	}{
 		{3, 0, nil},
 		{3, 0, nil},
@@ -39,10 +43,9 @@ func TestBitStream_BitPosition(t *testing.T) {
 		{64, 8, io.EOF},
 	}
 
-	for idx, test := range tests {
-		_ = idx
+	for _, test := range tests {
 		res := bs.Next(test.bitsToRead).Bits()
-		if res.Error != test.expectedError {
+		if !errors.Is(res.Error, test.expectedError) {
 			t.Error(res.Error)
 		}
 
@@ -50,13 +53,14 @@ func TestBitStream_BitPosition(t *testing.T) {
 
 		if bytePosition != test.expectedBytePosition {
 			const fmtMsg = "read %v bits, expecting byte position %v, but got %v"
+
 			t.Errorf(fmtMsg, test.bitsToRead, test.expectedBytePosition, bytePosition)
 		}
 	}
 }
 
 func TestBitStream_OffsetBitPosition(t *testing.T) {
-	bs :=  FromBytes(
+	bs := FromBytes(
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
@@ -67,7 +71,7 @@ func TestBitStream_OffsetBitPosition(t *testing.T) {
 		0x01, 0x02, 0x03, 0x04,
 	)
 
-	tests := []struct{
+	tests := []struct {
 		offset int
 		expect int
 	}{
@@ -90,7 +94,7 @@ func TestBitStream_OffsetBitPosition(t *testing.T) {
 }
 
 func TestBitStream_OffsetPosition(t *testing.T) {
-	bs :=  FromBytes(
+	bs := FromBytes(
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
@@ -101,7 +105,7 @@ func TestBitStream_OffsetPosition(t *testing.T) {
 		0x01, 0x02, 0x03, 0x04,
 	)
 
-	tests := []struct{
+	tests := []struct {
 		offset int
 		expect int
 	}{
@@ -127,8 +131,8 @@ func TestBitStream_Position(t *testing.T) {
 	bytes := []byte{0, 0, 0, 0, 0, 0, 0, 0}
 	bs := FromBytes(bytes...)
 
-	tests := []struct{
-		set int
+	tests := []struct {
+		set    int
 		expect int
 	}{
 		{-1, 0},
@@ -145,11 +149,11 @@ func TestBitStream_Position(t *testing.T) {
 }
 
 func TestBitStream_ReadBit(t *testing.T) {
-	bs := FromBytes(0b10000010)
+	bs := FromBytes(130)
 
-	tests := []struct{
+	tests := []struct {
 		expect bool
-		err error
+		err    error
 	}{
 		{false, nil},
 		{true, nil},
@@ -172,15 +176,15 @@ func TestBitStream_ReadBit(t *testing.T) {
 		}
 	}
 
-	if _, err := bs.readBit(); err != io.EOF {
+	if _, err := bs.readBit(); !errors.Is(err, io.EOF) {
 		t.Errorf("expected EOF error, got %v", err)
 	}
 }
 
 func TestBitStream_ReadBits(t *testing.T) {
-	bs := FromBytes(0b10000010)
+	bs := FromBytes(130)
 
-	tests := []struct{
+	tests := []struct {
 		numBitsToRead int
 		expectedError error
 	}{
@@ -191,29 +195,30 @@ func TestBitStream_ReadBits(t *testing.T) {
 
 	for _, test := range tests {
 		b := bs.Next(test.numBitsToRead).Bits()
-		if b.Error != test.expectedError {
+		if !errors.Is(b.Error, test.expectedError) {
 			t.Error(b.Error)
 		}
 
 		if len(b.Bits) != test.numBitsToRead {
 			const fmtErr = "expected bits length of %v, got length %v"
+
 			t.Errorf(fmtErr, test.numBitsToRead, len(b.Bits))
 		}
 	}
 }
 
 func TestBitStream_SetBitPosition(t *testing.T) {
-	bs := FromBytes(0b1000_0000, 0b0000_0010)
+	bs := FromBytes(128, 2)
 
-	tests := []struct{
+	tests := []struct {
 		bitPosition int
-		expected bool
+		expected    bool
 	}{
-		{7, true}, // starts at 7, reads bit and ends at 0 in next byte
-		{1, true}, // sets to 1, reads bit and ends at 2
-		{-1, true}, // goes back one byte to position 7 of first byte, ends in second byte
+		{7, true},   // starts at 7, reads bit and ends at 0 in next byte
+		{1, true},   // sets to 1, reads bit and ends at 2
+		{-1, true},  // goes back one byte to position 7 of first byte, ends in second byte
 		{-2, false}, // goes back to first byte, ends in first byte
-		{9, true}, // goes to second bit of second byte
+		{9, true},   // goes to second bit of second byte
 	}
 
 	for _, test := range tests {
@@ -232,7 +237,7 @@ func TestBitStream_SetBitPosition(t *testing.T) {
 func TestBitStream_SetPosition(t *testing.T) {
 	bs := FromBytes(0, 0, 0, 0, 0, 0)
 
-	tests := []struct{
+	tests := []struct {
 		position int
 		expected int
 	}{
@@ -253,23 +258,19 @@ func TestBitStream_SetPosition(t *testing.T) {
 	}
 }
 
-
 func TestBitStream_ReadByte_AsByte(t *testing.T) {
 	bs := FromBytes(
-		0b_1000_0000,
-		0b_0000_0001,
-		0b_0000_1111,
-		0b_1100_1100,
+		128, 1, 15, 204,
 	)
 
-	tests := []struct{
-		bitOffset int
+	tests := []struct {
+		bitOffset    int
 		expectedByte byte
 	}{
 		{24, 0b_1100_1100}, // the 4th byte
 		{22, 0b_0011_0000}, // two MSB's of 3rd byte, six LSB's of 4th
 		{23, 0b_1001_1000}, // one MSB of 3rd byte, seven LSB's of 4th
-		{4, 0b_0001_1000}, // 4 MSB's of 1st byte, 4 LSB's of 2nd
+		{4, 0b_0001_1000},  // 4 MSB's of 1st byte, 4 LSB's of 2nd
 	}
 
 	for _, test := range tests {
@@ -295,7 +296,10 @@ func TestBitStream_ReadByte_AsByte(t *testing.T) {
 
 func BenchmarkBitStream_ReadBits(b *testing.B) {
 	bytes := make([]byte, 1024)
-	rand.Read(bytes)
+
+	if _, err := rand.Read(bytes); err != nil {
+		b.Error(err)
+	}
 
 	bs := FromBytes(bytes...)
 
@@ -349,22 +353,24 @@ func readbits(b *testing.B, bs *BitStream, numBits int) {
 		bs.SetPosition(0)
 		bs.SetBitPosition(0)
 
-		numBitsToRead := rand.Intn(numBits)
-		_ = bs.Next(numBitsToRead).Bits()
+		numBitsToRead, err := rand.Int(rand.Reader, big.NewInt(int64(numBits)))
+		if err != nil {
+			b.Error(err)
+		}
+
+		_ = bs.Next(int(numBitsToRead.Int64())).Bits()
 	}
 }
 
 func TestFromBytes(t *testing.T) {
-	s := FromBytes(0b_0000_0000, 0b_0010_0000)
+	s := FromBytes(0, 32)
 
 	s.OffsetBitPosition(12) // second byte, will read from 5th LSB next
 
 	val, err := s.Next(2).Bits().AsByte()
 	if err != nil {
-		// EOF
+		t.Error("Reading bits returned End Of File")
 	}
 
-	if val != 0b10 {
-		// handle it
-	}
+	assert.Equal(t, byte(2), val, "unexpected value returned")
 }
