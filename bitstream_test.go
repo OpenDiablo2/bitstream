@@ -368,3 +368,94 @@ func TestFromBytes(t *testing.T) {
 		// handle it
 	}
 }
+
+// BitStream is supposed to replace Bitmuncher, this was a test to ensure they worked the same.
+//func TestAgainstBitmuncher(t *testing.T) {
+//	rand.Seed(time.Now().UnixNano())
+//
+//	b := make([]byte, rand.Intn(1024*1024))
+//
+//	for idx := range b {
+//		b[idx] = byte(rand.Int())
+//	}
+//
+//	bm := d2datautils.CreateBitMuncher(b, 0)
+//	bs := FromBytes(b...)
+//
+//	funcMap := []func() error {
+//		func() error {
+//			b1 := bm.GetBit()
+//			b2, _ := bs.Next(1).Bits().AsUInt32()
+//
+//			if b1 != b2 {
+//				return errors.New("bits dont match")
+//			}
+//
+//			return nil
+//		},
+//		func() error {
+//			b1 := bm.GetByte()
+//			b2, _ := bs.Next(1).Bytes().AsByte()
+//
+//			if bm.Offset() + 1 >= len(b) {
+//				return nil
+//			}
+//
+//			if b1 != b2 {
+//				return fmt.Errorf("bytes dont match: %v != %v", b1, b2)
+//			}
+//
+//			return nil
+//		},
+//		func() error {
+//			if bm.Offset() + 3 >= len(b) {
+//				return nil
+//			}
+//
+//			b1 := bm.GetBits(12)
+//			b2, _ := bs.Next(12).Bits().AsUInt32()
+//
+//			if b1 != b2 {
+//				return fmt.Errorf("12 bits as uint32 dont match: %v != %v", b1, b2)
+//			}
+//
+//			return nil
+//		},
+//		func() error {
+//			bm = bm.Copy()
+//			bs = bs.Copy()
+//
+//			if bm.BitsRead() != bs.BitsRead() {
+//				return fmt.Errorf("tally of bits read not equal: %v != %v", bm.BitsRead(), bs.BitsRead())
+//			}
+//
+//			absoluteBitOffset := (bs.Position() * 8) + bs.BitPosition()
+//			if bm.Offset() != absoluteBitOffset {
+//				return fmt.Errorf("absolute bit position not equal: %v != %v", bm.Offset(), absoluteBitOffset)
+//			}
+//
+//			return nil
+//		},
+//		func() error {
+//			return nil
+//		},
+//		func() error {
+//			return nil
+//		},
+//	}
+//
+//	numBits := len(b) * 8
+//	for numBits > 8 {
+//		randIdx := rand.Intn(len(funcMap))
+//		if err := funcMap[randIdx](); err != nil {
+//			t.Error(err)
+//			break
+//		}
+//
+//		if bm.Offset() >= len(b) - 1 {
+//			break
+//		}
+//
+//		numBits--
+//	}
+//}

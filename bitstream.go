@@ -60,11 +60,14 @@ func (bs *BitStream) FromBytes(b ...byte) *BitStream {
 	return bs
 }
 
-// Copy creates a copy of this bitstream, including the data
+// Copy creates a copy of this bitstream, including the data.
+// We do some funky stuff here regarding byte and bit offset to mimic the
+// original implementation.
 func (bs *BitStream) Copy() *BitStream {
 	currentPosition, _ := bs.Seek(0, io.SeekCurrent)
 	currentBitPosition := bs.bitPosition
-	bitsRead := bs.bitsRead
+	absoluteBitPosition := (int(currentPosition) * bitsPerByte) + currentBitPosition
+
 	length, _ := bs.Seek(0, io.SeekEnd)
 
 	_, _ = bs.Seek(0, io.SeekStart)
@@ -76,8 +79,7 @@ func (bs *BitStream) Copy() *BitStream {
 
 	dst := FromBytes(buf...)
 
-	bs.SetPosition(int(currentPosition)).SetBitPosition(currentBitPosition)
-	bs.bitsRead = bitsRead
+	dst.SetPosition(0).OffsetBitPosition(absoluteBitPosition)
 
 	return dst
 }
