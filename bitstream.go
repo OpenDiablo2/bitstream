@@ -4,6 +4,7 @@ package bitstream
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 )
 
@@ -106,7 +107,7 @@ func (bs *BitStream) readBit() (bool, error) {
 	bp := bs.bitPosition // we store a copy, it gets altered during the read
 
 	if numRead, err := bs.stream.Read(tmpBit); numRead < 1 || err != nil {
-		return false, err
+		return false, fmt.Errorf("error reading bits: %w", err)
 	}
 
 	bs.bitsRead++
@@ -158,7 +159,12 @@ func (bs *BitStream) Seek(offset int64, whence int) (int64, error) {
 		return 0, io.EOF
 	}
 
-	return bs.stream.Seek(offset, whence)
+	result, err := bs.stream.Seek(offset, whence)
+	if err != nil {
+		return 0, fmt.Errorf("error seeking Bitstream: %w", err)
+	}
+
+	return result, nil
 }
 
 // Position returns the byte-position within the stream
