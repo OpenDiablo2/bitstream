@@ -47,7 +47,7 @@ func (b Bits) AsInt8() int8 {
 
 // AsUInt8 interprets the bits as a usnigned 8-bit integer
 func (b Bits) AsUInt8() uint8 {
-	return uint8(b.AsInt8())
+	return b.AsByte()
 }
 
 // AsInt16 interprets the bits as a signed 16-bit integer
