@@ -44,13 +44,13 @@ func TestBits_AsInt(t *testing.T) {
 			// LSB is ON THE LEFT!!!!
 			// LSB is ON THE LEFT!!!!
 			// LSB is ON THE LEFT!!!!
-			true, true, true, true,
+			T, T, T, T,
 		}, -1},
 
-		{"negative 1 (8 bit)", Bits{true, true, true, true, true, true, true, true}, -1},
-		{"negative 7 (8 bit)", Bits{true, false, false, true, true, true, true, true}, -7},
-		{"positive 7 (4 bit)", Bits{true, true, true, false}, 7},
-		{"negative 1 (1 bit)", Bits{true}, -1},
+		{"negative 1 (8 bit)", Bits{T, T, T, T, T, T, T, T}, -1},
+		{"negative 7 (8 bit)", Bits{T, F, F, T, T, T, T, T}, -7},
+		{"positive 7 (4 bit)", Bits{T, T, T, F}, 7},
+		{"negative 1 (1 bit)", Bits{T}, -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
