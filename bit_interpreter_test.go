@@ -203,22 +203,31 @@ func TestBits_AsUInt32(t *testing.T) {
 	}
 }
 
-//func TestBits_AsUInt64(t *testing.T) {
-//	tests := []struct {
-//		name string
-//		b    Bits
-//		want uint64
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			if got := tt.b.AsUInt64(); got != tt.want {
-//				t.Errorf("AsUInt64() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+func TestBits_AsUInt64(t *testing.T) {
+	tests := []struct {
+		name string
+		b    Bits
+		want uint64
+	}{
+		{"2^31 (5 bits)", Bits{T, F, T, T, T}, 2 ^ 31},
+		{"2^31 (32 bits)", Bits{T, F, T, T, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F}, 2 ^ 31},
+		{"2^63 (6 bits)", Bits{T, F, T, T, T, T}, 2 ^ 63},
+		{"2^63 (64 bits)", Bits{
+			T, F, T, T, T, T, F, F, F, F, F, F, F, F, F,
+			F, F, F, F, F, F, F, F, F, F, F, F, F, F, F,
+			F, F, F, F, F, F, F, F, F, F, F, F, F, F, F,
+			F, F, F, F, F, F, F, F, F, F, F, F, F, F, F,
+			F, F, F, F,
+		}, 2 ^ 63},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.AsUInt64(); got != tt.want {
+				t.Errorf("AsUInt64() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 //func TestBits_AsUInt8(t *testing.T) {
 //	tests := []struct {
