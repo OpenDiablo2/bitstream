@@ -122,22 +122,27 @@ func TestBits_AsInt32(t *testing.T) {
 //	}
 //}
 
-//func TestBits_AsInt8(t *testing.T) {
-//	tests := []struct {
-//		name string
-//		b    Bits
-//		want int8
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			if got := tt.b.AsInt8(); got != tt.want {
-//				t.Errorf("AsInt8() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+func TestBits_AsInt8(t *testing.T) {
+	tests := []struct {
+		name string
+		b    Bits
+		want int8
+	}{
+		{"positive 100 (8 bits)", Bits{F, F, T, F, F, T, T, F}, 100},
+		{"negative 100 (8 bits)", Bits{F, F, T, T, T, F, F, T}, -100},
+		{"positive 8 (5 bits)", Bits{F, F, F, T, F}, 8},
+		{"negative 8 (5 bits)", Bits{F, F, F, T, T}, -8},
+		{"positive 64 (8 bits)", Bits{F, F, F, F, F, F, T, F}, 64},
+		{"negative 64 (7 bits)", Bits{F, F, F, F, F, F, T}, -64},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.AsInt8(); got != tt.want {
+				t.Errorf("AsInt8() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 //func TestBits_AsUInt(t *testing.T) {
 //	tests := []struct {
