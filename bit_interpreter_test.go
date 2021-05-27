@@ -84,22 +84,26 @@ func TestBits_AsInt16(t *testing.T) {
 	}
 }
 
-//func TestBits_AsInt32(t *testing.T) {
-//	tests := []struct {
-//		name string
-//		b    Bits
-//		want int32
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			if got := tt.b.AsInt32(); got != tt.want {
-//				t.Errorf("AsInt32() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
+func TestBits_AsInt32(t *testing.T) {
+	tests := []struct {
+		name string
+		b    Bits
+		want int32
+	}{
+		{"empty", Bits{}, 0},
+		{"negative 310 (10 bits)", Bits{F, T, F, T, F, F, T, T, F, T}, -310},
+		{"positive 1024 (12 bits)", Bits{F, F, F, F, F, F, F, F, F, F, T, F}, 1024},
+		{"negative 1024 (12 bits)", Bits{F, F, F, F, F, F, F, F, F, F, T, T}, -1024},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.AsInt32(); got != tt.want {
+				t.Errorf("AsInt32() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 //func TestBits_AsInt64(t *testing.T) {
 //	tests := []struct {
