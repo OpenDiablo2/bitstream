@@ -376,7 +376,7 @@ func TestFromBytes(t *testing.T) {
 }
 
 // BitStream is supposed to replace Bitmuncher, this was a test to ensure they worked the same.
-//func TestAgainstBitmuncher(t *testing.T) {
+// func TestAgainstBitmuncher(t *testing.T) {
 //	rand.Seed(time.Now().UnixNano())
 //
 //	b := make([]byte, rand.Intn(1024*1024))
@@ -464,4 +464,4 @@ func TestFromBytes(t *testing.T) {
 //
 //		numBits--
 //	}
-//}
+// }
