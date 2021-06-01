@@ -11,7 +11,7 @@ import (
 )
 
 func TestBitStream_NilData(t *testing.T) {
-	bs := New(nil)
+	bs := NewReader(nil)
 
 	bit, err := bs.readBit()
 
@@ -25,7 +25,7 @@ func TestBitStream_NilData(t *testing.T) {
 }
 
 func TestBitStream_BitPosition(t *testing.T) {
-	bs := FromBytes(
+	bs := ReaderFromBytes(
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
 	)
@@ -60,7 +60,7 @@ func TestBitStream_BitPosition(t *testing.T) {
 }
 
 func TestBitStream_OffsetBitPosition(t *testing.T) {
-	bs := FromBytes(
+	bs := ReaderFromBytes(
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
@@ -94,7 +94,7 @@ func TestBitStream_OffsetBitPosition(t *testing.T) {
 }
 
 func TestBitStream_OffsetPosition(t *testing.T) {
-	bs := FromBytes(
+	bs := ReaderFromBytes(
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
 		0x01, 0x02, 0x03, 0x04,
@@ -129,7 +129,7 @@ func TestBitStream_OffsetPosition(t *testing.T) {
 
 func TestBitStream_Position(t *testing.T) {
 	bytes := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	bs := FromBytes(bytes...)
+	bs := ReaderFromBytes(bytes...)
 
 	tests := []struct {
 		set    int
@@ -149,7 +149,7 @@ func TestBitStream_Position(t *testing.T) {
 }
 
 func TestBitStream_ReadBit(t *testing.T) {
-	bs := FromBytes(130)
+	bs := ReaderFromBytes(130)
 
 	tests := []struct {
 		expect bool
@@ -182,7 +182,7 @@ func TestBitStream_ReadBit(t *testing.T) {
 }
 
 func TestBitStream_ReadBits(t *testing.T) {
-	bs := FromBytes(130)
+	bs := ReaderFromBytes(130)
 
 	tests := []struct {
 		numBitsToRead int
@@ -208,7 +208,7 @@ func TestBitStream_ReadBits(t *testing.T) {
 }
 
 func TestBitStream_SetBitPosition(t *testing.T) {
-	bs := FromBytes(128, 2)
+	bs := ReaderFromBytes(128, 2)
 
 	tests := []struct {
 		bitPosition int
@@ -235,7 +235,7 @@ func TestBitStream_SetBitPosition(t *testing.T) {
 }
 
 func TestBitStream_SetPosition(t *testing.T) {
-	bs := FromBytes(0, 0, 0, 0, 0, 0)
+	bs := ReaderFromBytes(0, 0, 0, 0, 0, 0)
 
 	tests := []struct {
 		position int
@@ -259,7 +259,7 @@ func TestBitStream_SetPosition(t *testing.T) {
 }
 
 func TestBitStream_ReadByte_AsByte(t *testing.T) {
-	bs := FromBytes(
+	bs := ReaderFromBytes(
 		128, 1, 15, 204,
 	)
 
@@ -301,7 +301,7 @@ func BenchmarkBitStream_ReadBits(b *testing.B) {
 		b.Error(err)
 	}
 
-	bs := FromBytes(bytes...)
+	bs := ReaderFromBytes(bytes...)
 
 	b.Run("readbit", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
@@ -329,7 +329,7 @@ func BenchmarkBitStream_ReadBits(b *testing.B) {
 		readbits(b, bs, 32)
 	})
 
-	bs = New(nil)
+	bs = NewReader(nil)
 
 	b.Run("8bit reads (from nil stream)", func(b *testing.B) {
 		readbits(b, bs, 8)
@@ -363,7 +363,7 @@ func readbits(b *testing.B, bs *Reader, numBits int) {
 }
 
 func TestFromBytes(t *testing.T) {
-	s := FromBytes(0, 32)
+	s := ReaderFromBytes(0, 32)
 
 	s.OffsetBitPosition(12) // second byte, will read from 5th LSB next
 
@@ -376,7 +376,7 @@ func TestFromBytes(t *testing.T) {
 }
 
 func TestBitstream_Copy(t *testing.T) {
-	original := FromBytes(
+	original := ReaderFromBytes(
 		0b_0000_0000,
 		0b_0000_0001,
 		0b_0000_0010,
@@ -449,7 +449,7 @@ func TestBitstream_Copy(t *testing.T) {
 //	}
 //
 //	bm := d2datautils.CreateBitMuncher(b, 0)
-//	bs := FromBytes(b...)
+//	bs := ReaderFromBytes(b...)
 //
 //	funcMap := []func() error {
 //		func() error {
@@ -457,7 +457,7 @@ func TestBitstream_Copy(t *testing.T) {
 //			b2, _ := bs.Next(1).Bits().AsUInt32()
 //
 //			if b1 != b2 {
-//				return errors.New("bits dont match")
+//				return errors.NewReader("bits dont match")
 //			}
 //
 //			return nil

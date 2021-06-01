@@ -1,5 +1,5 @@
-// Package bitstream provides a stream reader implementation that can
-// read data that is not byte aligned.
+// Package bitstream provides a stream reader and writer implementation that can
+// read/write data that is not byte aligned.
 package bitstream
 
 import (
@@ -13,16 +13,22 @@ const (
 	bitMask     = 0x01
 )
 
-// New creates a new Reader using the given io.ReadSeeker
-func New(rs io.ReadSeeker) *Reader {
-	bs := &Reader{stream: rs}
+// NewReader creates a new Reader using the given io.ReadSeeker
+func NewReader(args ...interface{}) *Reader {
+	bs := &Reader{}
+
+	if len(args) > 0 {
+		if rs, good := args[0].(io.ReadSeeker); good {
+			bs.stream = rs
+		}
+	}
 
 	return bs
 }
 
-// FromBytes creates a new Reader with the given bytes
-func FromBytes(data ...byte) *Reader {
-	return New(nil).FromBytes(data...)
+// ReaderFromBytes creates a new Reader with the given bytes
+func ReaderFromBytes(data ...byte) *Reader {
+	return NewReader().FromBytes(data...)
 }
 
 // Copy creates a deep copy of the source Reader
@@ -53,7 +59,7 @@ type options struct {
 	endianness // determines which end the bits are read from the byte (from biggest end or smallest end)
 }
 
-// FromBytes yields a new Reader, using the given bytes as the stream source
+// ReaderFromBytes yields a new Reader, using the given bytes as the stream source
 func (bs *Reader) FromBytes(b ...byte) *Reader {
 	bs.stream = bytes.NewReader(b)
 	return bs
@@ -76,7 +82,7 @@ func (bs *Reader) Copy() *Reader {
 		_, _ = bs.stream.Read(buf)
 	}
 
-	dst := FromBytes(buf...)
+	dst := ReaderFromBytes(buf...)
 
 	dst.SetPosition(0).OffsetBitPosition(absoluteBitPosition)
 
