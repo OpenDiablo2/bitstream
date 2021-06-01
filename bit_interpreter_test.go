@@ -270,3 +270,24 @@ func TestBits_AsBytes(t *testing.T) {
 		})
 	}
 }
+
+func TestBits_AsBool(t *testing.T) {
+	tests := []struct {
+		name string
+		b    Bits
+		want bool
+	}{
+		{"single false bit", Bits{F}, F},
+		{"single true bit", Bits{T}, T},
+		{"only false bits", Bits{F, F, F, F, F, F, F, F}, F},
+		{"one true bit", Bits{F, F, F, F, F, F, F, F, T}, T},
+		{"one true bit", Bits{T, T, T, T, T}, T},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.b.AsBool(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AsBool() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

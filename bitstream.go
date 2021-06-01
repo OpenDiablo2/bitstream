@@ -93,6 +93,12 @@ func (bs *BitStream) BitsRead() int {
 	return bs.bitsRead
 }
 
+// SetBitsRead sets the number of bits read
+func (bs *BitStream) SetBitsRead(n int) *BitStream {
+	bs.bitsRead = n
+	return bs
+}
+
 var tmpBit = make([]byte, 1)
 
 // readBit reads a single bit from the stream source. It will always yield a boolean,
@@ -273,4 +279,13 @@ func (bs *BitStream) Bytes() Response {
 	bits, err := bs.readBits(bs.unitsToRead * bitsPerByte)
 
 	return Response{bits, err}
+}
+
+// Length returns the number of bytes
+func (bs *BitStream) Length() int {
+	current, _ := bs.stream.Seek(0, io.SeekCurrent)
+	length, _ := bs.stream.Seek(0, io.SeekEnd)
+	_, _ = bs.stream.Seek(current, io.SeekStart)
+
+	return int(length)
 }

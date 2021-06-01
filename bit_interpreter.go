@@ -14,7 +14,7 @@ type Bits = BitInterpreter
 
 // AsBool interprets the bits as a bool
 func (b Bits) AsBool() bool {
-	return b.AsInt() > 0
+	return b.AsUInt() > 0
 }
 
 // AsByte interprets the bits as a byte

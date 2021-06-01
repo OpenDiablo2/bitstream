@@ -375,6 +375,61 @@ func TestFromBytes(t *testing.T) {
 	assert.Equal(t, byte(2), val, "unexpected value returned")
 }
 
+func TestBitstream_Copy(t *testing.T) {
+	s := FromBytes(
+		0b_0000_0001,
+		0b_0000_0010,
+		0b_1111_0011,
+		0b_0000_0100,
+		)
+
+	s = s.Copy()
+	b1, err := s.Next(1).Bytes().AsUInt()
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, uint(1), b1, "unexpected value returned")
+	assert.Equal(t, 8, s.BitsRead(), "unexpected value returned")
+
+	s = s.Copy()
+	b2, err := s.Next(12).Bits().AsUInt()
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, uint(0b_0011_0000_0010), b2, "unexpected value returned")
+	assert.Equal(t, 12, s.BitsRead(), "unexpected value returned")
+
+	s = s.Copy()
+	b3, err := s.Next(1).Bytes().AsUInt()
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, uint(0b_0100_1111), b3, "unexpected value returned")
+	assert.Equal(t, 8, s.BitsRead(), "unexpected value returned")
+
+	s = s.Copy()
+	b4, err := s.Next(1).Bytes().AsUInt()
+	if err == nil {
+		t.Error("expecting End Of File")
+	}
+
+	assert.Equal(t, uint(0), b4, "unexpected value returned")
+	assert.Equal(t, 4, s.BitsRead(), "unexpected value returned")
+
+	s = s.Copy()
+	s.OffsetBitPosition(-12)
+	b5, err := s.Next(7).Bits().AsUInt()
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, uint(0b_0100_1111), b5, "unexpected value returned")
+	assert.Equal(t, 7, s.BitsRead(), "unexpected value returned")
+}
+
 // BitStream is supposed to replace Bitmuncher, this was a test to ensure they worked the same.
 // func TestAgainstBitmuncher(t *testing.T) {
 //	rand.Seed(time.Now().UnixNano())
