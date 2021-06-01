@@ -112,7 +112,7 @@ func (bs *BitStream) readBit() (bool, error) {
 		return false, io.EOF
 	}
 
-	bp := bs.bitPosition // we store a copy, it gets altered during the read
+	bp := uint8(bs.bitPosition) // we store a copy, it gets altered during the read
 
 	if numRead, err := bs.stream.Read(tmpBit); numRead < 1 || err != nil {
 		return false, fmt.Errorf("error reading bits: %w", err)
@@ -129,13 +129,13 @@ func (bs *BitStream) readBit() (bool, error) {
 		_, _ = bs.Seek(-1, io.SeekCurrent)
 	}
 
-	shift := 0
+	shift := uint8(0)
 
 	switch bs.Options.endianness {
 	case LittleEndian:
 		shift = bp
 	case BigEndian:
-		shift = bitsPerByte - bp
+		shift = uint8(bitsPerByte) - bp
 	}
 
 	return ((tmpBit[0] >> shift) & bitMask) > 0, nil

@@ -8,7 +8,7 @@ type Response struct {
 
 // AsBool interprets the bits as a bool
 func (res Response) AsBool() (bool, error) {
-	return res.Bits.AsInt() > 0, res.Error
+	return res.Bits.AsBool(), res.Error
 }
 
 // AsByte interprets the bits as a byte
