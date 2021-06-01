@@ -85,6 +85,9 @@ func (bs *BitStream) Copy() *BitStream {
 
 	dst.SetPosition(0).OffsetBitPosition(absoluteBitPosition)
 
+	bs.SetPosition(int(currentPosition))
+	bs.SetBitPosition(int(currentBitPosition))
+
 	return dst
 }
 
@@ -209,7 +212,7 @@ func (bs *BitStream) BitPosition() int {
 //
 // Example: setting to -1 is the same as calling OffsetPosition(-1) and then SetBitPosition(7)
 func (bs *BitStream) SetBitPosition(i int) *BitStream {
-	position, _ := bs.Seek(0, io.SeekCurrent)
+	position := bs.Position()
 
 	// corner case, can't go back any further
 	if i < 0 && position <= 0 {
