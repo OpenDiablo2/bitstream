@@ -348,7 +348,7 @@ func BenchmarkBitStream_ReadBits(b *testing.B) {
 	})
 }
 
-func readbits(b *testing.B, bs *BitStream, numBits int) {
+func readbits(b *testing.B, bs *Reader, numBits int) {
 	for i := 0; i < b.N; i++ {
 		bs.SetPosition(0)
 		bs.SetBitPosition(0)
@@ -376,18 +376,26 @@ func TestFromBytes(t *testing.T) {
 }
 
 func TestBitstream_Copy(t *testing.T) {
-	s := FromBytes(
+	original := FromBytes(
+		0b_0000_0000,
 		0b_0000_0001,
 		0b_0000_0010,
 		0b_1111_0011,
 		0b_0000_0100,
 		)
 
-	s = s.Copy()
+	_ = original.Next(8).Bits() // skip
+
+	position, bitPosition := original.Position(), original.BitPosition()
+
+	s := original.Copy()
 	b1, err := s.Next(1).Bytes().AsUInt()
 	if err != nil {
 		t.Error(err)
 	}
+
+	assert.Equal(t, original.Position(), position, "position of original stream after copy is changed")
+	assert.Equal(t, original.BitPosition(), bitPosition, "bit position of original stream after copy is changed")
 
 	assert.Equal(t, uint(1), b1, "unexpected value returned")
 	assert.Equal(t, 8, s.BitsRead(), "unexpected value returned")
@@ -430,7 +438,7 @@ func TestBitstream_Copy(t *testing.T) {
 	assert.Equal(t, 7, s.BitsRead(), "unexpected value returned")
 }
 
-// BitStream is supposed to replace Bitmuncher, this was a test to ensure they worked the same.
+// Reader is supposed to replace Bitmuncher, this was a test to ensure they worked the same.
 // func TestAgainstBitmuncher(t *testing.T) {
 //	rand.Seed(time.Now().UnixNano())
 //

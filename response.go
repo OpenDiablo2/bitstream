@@ -1,6 +1,6 @@
 package bitstream
 
-// Response represens a response of BitStream
+// Response represents a response of Reader
 type Response struct {
 	Bits
 	Error error
