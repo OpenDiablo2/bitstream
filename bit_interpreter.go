@@ -6,6 +6,10 @@ const (
 	twosComplimentNegativeOne = math.MaxUint64
 )
 
+func BitsFromByte(bb byte) Bits {
+	return NewReader().FromBytes(bb).Next(8).Bits().Bits
+}
+
 // BitInterpreter is responsible for converting an array of booleans to various number formats.
 type BitInterpreter []bool
 
