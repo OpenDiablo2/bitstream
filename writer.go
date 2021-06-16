@@ -7,7 +7,7 @@ import "fmt"
 // of the bits is in a byte slice.
 type Writer struct {
 	// all of the bytes written by this Writer
-	bytes     []byte
+	bytes []byte
 
 	// bitBuffer is a single byte used for storing individual bits that are written.
 	// When a byte-boundary is passed, this byte is appended to the bytes slice
@@ -21,7 +21,6 @@ type Writer struct {
 	// endianness determines the order in which bits are written into the bitBuffer
 	endianness
 }
-
 
 // Bytes returns a copy of the byte buffer
 func (w *Writer) Bytes() []byte {
@@ -40,13 +39,19 @@ func (w *Writer) Bytes() []byte {
 func (w *Writer) Write(args ...interface{}) (bitsWritten int, err error) {
 	for idx := range args {
 		switch v := args[idx].(type) {
-		case byte :
+		case uint16, uint32, uint64:
+			if num, err := w.WriteUint(v); err != nil {
+				break
+			} else {
+				bitsWritten += num
+			}
+		case byte:
 			if num, err := w.WriteByte(v); err != nil {
 				break
 			} else {
 				bitsWritten += num
 			}
-		case []byte :
+		case []byte:
 			if num, err := w.WriteBytes(v); err != nil {
 				break
 			} else {
@@ -70,6 +75,45 @@ func (w *Writer) Write(args ...interface{}) (bitsWritten int, err error) {
 	}
 
 	return bitsWritten, err
+}
+
+func (w *Writer) WriteUint(i interface{}) (bitsWritten int, err error) {
+	const (
+		bytesPerInt16 = 2
+		bytesPerInt32 = 4
+		bytesPerInt64 = 8
+	)
+
+	var l int
+	var data []byte
+
+	switch i.(type) {
+	case uint16:
+		l = bytesPerInt16
+		data = make([]byte, l)
+		for idx := 0; idx < l; idx++ {
+			shift := idx * bitsPerByte
+			data[idx] = byte(i.(uint16) >> shift)
+		}
+	case uint32:
+		l = bytesPerInt32
+		data = make([]byte, l)
+		for idx := 0; idx < l; idx++ {
+			shift := idx * bitsPerByte
+			data[idx] = byte(i.(uint32) >> shift)
+		}
+	case uint64:
+		l = bytesPerInt32
+		data = make([]byte, l)
+		for idx := 0; idx < l; idx++ {
+			shift := idx * bitsPerByte
+			data[idx] = byte(i.(uint64) >> shift)
+		}
+	default:
+		return 0, fmt.Errorf("value of type %T isn't untyped intager or doesn't specify its size", i)
+	}
+
+	return w.WriteBytes(data)
 }
 
 // WriteBytes writes the given bytes
@@ -124,7 +168,7 @@ func (w *Writer) WriteBit(b bool) (bitsWritten int, err error) {
 	w.bitOffset++
 
 	if b {
-		w.bitBuffer |= 1<<shift
+		w.bitBuffer |= 1 << shift
 	}
 
 	if w.bitOffset >= bitsPerByte {
