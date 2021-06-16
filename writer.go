@@ -77,6 +77,7 @@ func (w *Writer) Write(args ...interface{}) (bitsWritten int, err error) {
 	return bitsWritten, err
 }
 
+// WriteUint writes an unigned intager value to stream
 func (w *Writer) WriteUint(i interface{}) (bitsWritten int, err error) {
 	const (
 		bytesPerInt16 = 2
@@ -88,6 +89,8 @@ func (w *Writer) WriteUint(i interface{}) (bitsWritten int, err error) {
 	var data []byte
 
 	switch i.(type) {
+	case uint8:
+		w.WriteByte(i.(uint8))
 	case uint16:
 		l = bytesPerInt16
 		data = make([]byte, l)
