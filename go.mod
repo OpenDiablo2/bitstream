@@ -1,4 +1,4 @@
-module github.com/gravestench/bitstream
+module github.com/OpenDiablo2/bitstream
 
 go 1.16
 
