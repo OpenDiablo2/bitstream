@@ -80,17 +80,20 @@ func TestWriter_WriteBits(t *testing.T) {
 			"empty",
 			state{[]byte{}, 0b110, 3},
 			Bits{F, F, F, T},
-			[]byte{0b_1000_110}},
+			[]byte{0b_1000_110},
+		},
 		{
 			"start unaligned, end aligned",
 			state{[]byte{1, 2, 3, 4}, 0b11, 3},
 			Bits{T, T, T, T},
-			[]byte{1, 2, 3, 4, 0b_0111_1011}},
+			[]byte{1, 2, 3, 4, 0b_0111_1011},
+		},
 		{
 			"start unaligned, end unaligned",
 			state{[]byte{1, 2, 3, 4}, 0b10, 4},
 			Bits{F, F, F, F, T},
-			[]byte{1, 2, 3, 4, 0b_0000_0010, 0b1}},
+			[]byte{1, 2, 3, 4, 0b_0000_0010, 0b1},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -171,30 +174,36 @@ func TestWriter_WriteByte(t *testing.T) {
 		wantBitsWritten int
 		expectedBytes   []byte
 	}{
-		{"from empty, write 0x1",
+		{
+			"from empty, write 0x1",
 			state{
 				existingBytes: nil,
 			},
 			[]byte{0x1},
 			8,
-			[]byte{0x1}},
+			[]byte{0x1},
+		},
 
-		{"with existing bytes, aligned, multiple bytes",
+		{
+			"with existing bytes, aligned, multiple bytes",
 			state{
 				existingBytes: []byte{3, 2},
 			},
 			[]byte{2, 1},
 			16,
-			[]byte{3, 2, 2, 1}},
+			[]byte{3, 2, 2, 1},
+		},
 
-		{"with existing bytes, unaligned",
+		{
+			"with existing bytes, unaligned",
 			state{
 				existingBytes: []byte{6, 9, 4},
 				bitOffset:     1,
 			},
 			[]byte{1},
 			8,
-			[]byte{6, 9, 4, 2, 0}},
+			[]byte{6, 9, 4, 2, 0},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -243,30 +252,36 @@ func TestWriter_WriteBytes(t *testing.T) {
 		wantBitsWritten int
 		expectedBytes   []byte
 	}{
-		{"from empty, write 0x1",
+		{
+			"from empty, write 0x1",
 			state{
 				existingBytes: nil,
 			},
 			[]byte{0x1},
 			8,
-			[]byte{0x1}},
+			[]byte{0x1},
+		},
 
-		{"with existing bytes, aligned, multiple bytes",
+		{
+			"with existing bytes, aligned, multiple bytes",
 			state{
 				existingBytes: []byte{3, 2},
 			},
 			[]byte{2, 1},
 			16,
-			[]byte{3, 2, 2, 1}},
+			[]byte{3, 2, 2, 1},
+		},
 
-		{"with existing bytes, unaligned",
+		{
+			"with existing bytes, unaligned",
 			state{
 				existingBytes: []byte{6, 9, 4},
 				bitOffset:     1,
 			},
 			[]byte{1},
 			8,
-			[]byte{6, 9, 4, 2, 0}},
+			[]byte{6, 9, 4, 2, 0},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -278,7 +293,6 @@ func TestWriter_WriteBytes(t *testing.T) {
 			}
 
 			totalBitsWritten, err := w.WriteBytes(tt.bytesToWrite)
-
 			if err != nil {
 				t.Errorf("WriteBytes() error = %v", err)
 				return
@@ -319,35 +333,40 @@ func TestWriter_Write(t *testing.T) {
 			args{args: []interface{}{F, F, byte(3)}},
 			10,
 			[]byte{0b_0000_1100, 0},
-			false},
+			false,
+		},
 		{
 			"from non-empty, combo write, end unaligned",
 			fields{},
 			args{args: []interface{}{F, byte(3), []byte{0b0101_0101, 0b0011_0011, 0b0000_1111}}},
 			33,
 			[]byte{0b_0000_0110, 0b_1010_1010, 0b_0110_0110, 0b_0001_1110, 0},
-			false},
+			false,
+		},
 		{
 			"bad arg string",
 			fields{},
 			args{args: []interface{}{"123"}},
 			0,
 			nil,
-			true},
+			true,
+		},
 		{
 			"bad arg int64",
 			fields{},
 			args{args: []interface{}{int64(1234567)}},
 			0,
 			nil,
-			true},
+			true,
+		},
 		{
 			"mixed with bad args",
 			fields{},
 			args{args: []interface{}{F, T, F, int64(1234567)}},
 			3,
 			[]byte{2},
-			true},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -372,6 +391,44 @@ func TestWriter_Write(t *testing.T) {
 				if !bothEmpty {
 					t.Errorf("WriteBytes() = %v, want %v", got, tt.expectedBytes)
 				}
+			}
+		})
+	}
+}
+
+func TestWriter_WriteUint(t *testing.T) {
+	tests := []struct {
+		name            string
+		uintsToWrite    []interface{}
+		wantBitsWritten int
+		expectedBytes   []byte
+	}{
+		{"write uint16", []interface{}{uint16(18), uint16(100), uint16(480)}, 48, []byte{18, 0, 100, 0, 224, 1}},
+		{"write uint32", []interface{}{uint32(1024), uint32(40000), uint32(256)}, 96, []byte{0, 4, 0, 0, 64, 156, 0, 0, 0, 1, 0, 0}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &Writer{}
+
+			totalBitsWritten := 0
+
+			for idx := range tt.uintsToWrite {
+				bitsWritten, err := w.WriteUint(tt.uintsToWrite[idx])
+
+				totalBitsWritten += bitsWritten
+
+				if err != nil {
+					t.Errorf("WriteBool() error = %v", err)
+					return
+				}
+			}
+
+			if totalBitsWritten != tt.wantBitsWritten {
+				t.Errorf("WriteUint() gotBitsWritten = %v, want %v", totalBitsWritten, tt.wantBitsWritten)
+			}
+
+			if got := w.Bytes(); !reflect.DeepEqual(got, tt.expectedBytes) {
+				t.Errorf("Bytes() = %v, want %v", got, tt.expectedBytes)
 			}
 		})
 	}
